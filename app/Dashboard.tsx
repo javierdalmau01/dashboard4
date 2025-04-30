@@ -29,6 +29,8 @@ export default function Dashboard() {
   const [cryptoId, setCryptoId] = useState('bitcoin');
   const [prices, setPrices] = useState<number[]>([]);
   const [labels, setLabels] = useState<string[]>([]);
+  const [rsi, setRsi] = useState<number | null>(null);
+  const [recomendacion, setRecomendacion] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -42,6 +44,23 @@ export default function Dashboard() {
       );
       setPrices(newPrices);
       setLabels(newLabels);
+
+      // RSI (últimos 14 días)
+      if (newPrices.length >= 15) {
+        let gains = 0, losses = 0;
+        for (let i = newPrices.length - 14; i < newPrices.length; i++) {
+          const diff = newPrices[i] - newPrices[i - 1];
+          if (diff >= 0) gains += diff;
+          else losses -= diff;
+        }
+        const rs = gains / (losses || 1);
+        const rsiValue = 100 - 100 / (1 + rs);
+        setRsi(Number(rsiValue.toFixed(2)));
+
+        if (rsiValue < 30) setRecomendacion('🟢 Posible COMPRA (RSI < 30)');
+        else if (rsiValue > 70) setRecomendacion('🔴 Posible VENTA (RSI > 70)');
+        else setRecomendacion('⚪ Neutral');
+      }
     }
 
     fetchData();
@@ -65,6 +84,13 @@ export default function Dashboard() {
           ))}
         </select>
       </div>
+
+      {rsi !== null && (
+        <div className='mb-4'>
+          <p>📈 RSI: <strong>{rsi}</strong></p>
+          <p>📌 Recomendación: {recomendacion}</p>
+        </div>
+      )}
 
       <div className='bg-zinc-900 p-4 rounded'>
         <Line
